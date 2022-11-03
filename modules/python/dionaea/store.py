@@ -7,7 +7,7 @@
 from dionaea import IHandlerLoader
 from dionaea.core import ihandler, incident, g_dionaea
 from dionaea.exception import LoaderError
-from dionaea.util import md5file
+from dionaea.util import md5file, sha256file
 
 import os
 import logging
@@ -45,16 +45,19 @@ class storehandler(ihandler):
     def handle_incident(self, icd):
         logger.debug("storing file")
         p = icd.path
-        # ToDo: use sha1 or sha256
+
         md5 = md5file(p)
+        sha256 = sha256file(p)
+
         # ToDo: use sys.path.join()
-        n = os.path.join(self.download_dir, md5)
+        n = os.path.join(self.download_dir, sha256)
         i = incident("dionaea.download.complete.hash")
         i.file = n
         i.url = icd.url
         if hasattr(icd, 'con'):
             i.con = icd.con
         i.md5hash = md5
+        i.sha256hash = sha256
         i.report()
 
         try:
@@ -70,4 +73,5 @@ class storehandler(ihandler):
             i.con = icd.con
         i.url = icd.url
         i.md5hash = md5
+        i.sha256hash = sha256
         i.report()

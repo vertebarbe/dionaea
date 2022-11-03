@@ -273,3 +273,17 @@ class LogJsonHandler(ihandler):
                 "tos": icd.tos,
                 "uptime": icd.uptime
             }
+
+    def handle_incident_dionaea_download_complete_hash(self, icd):
+        con = icd.con
+        data = self.attacks.get(con)
+
+        if "downloads" not in data:
+            data["downloads"] = []
+
+        data["downloads"].append({
+            "path": self._prepare_value(icd.file),
+            "url": self._prepare_value(icd.url),
+            "md5": self._prepare_value(icd.md5hash),
+            "sha256": self._prepare_value(icd.sha256hash)
+        })
