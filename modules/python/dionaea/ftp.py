@@ -71,6 +71,7 @@ from os import stat
 from stat import *
 import time
 import io
+import tempfile
 
 
 logger = logging.getLogger('ftp')
@@ -651,9 +652,20 @@ class FTPDataCon(connection):
 
     def recv_file(self, p):
         logger.debug(p)
+
+        dionaea_config = g_dionaea.config().get("dionaea")
+        download_dir = dionaea_config.get("download.dir")
+        download_suffix = dionaea_config.get("download.suffix", ".tmp")
+
+        fp = tempfile.NamedTemporaryFile(
+            delete=False,
+            prefix="ftp-",
+            suffix=download_suffix,
+            dir=download_dir
+        )
+        self.file = fp
+
         self.mode = 'recv_file'
-        self.file = io.open(p, 'wb+')
-        print(self.file)
 
     def send_file(self, p):
         self.mode = "file"
@@ -698,6 +710,16 @@ class FTPDataCon(connection):
                 self.file.close()
             if self.mode == 'recv_file' and self.file:
                 self.file.close()
+
+                icd = incident("dionaea.download.complete")
+                # We need the url for logging
+                icd.url = ""
+                icd.con = self
+                icd.path = self.file.name
+                icd.prefix = "ftp-"
+                icd.report()
+                os.unlink(self.file.name)
+
                 self.ctrl.reply("txfr_complete_ok")
         return 0
 
