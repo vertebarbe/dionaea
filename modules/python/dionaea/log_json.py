@@ -250,6 +250,19 @@ class LogJsonHandler(ihandler):
             "arguments": self._prepare_value(icd.arguments)
         })
 
+    def handle_incident_dionaea_modules_python_smb_command(self, icd):
+        con = icd.con
+        data = self.attacks.get(con)
+        if "smb" not in data:
+            data["smb"] = {}
+        if "commands" not in data["smb"]:
+            data["smb"]["commands"] = []
+
+        data["smb"]["commands"].append({
+            "command": self._prepare_value(icd.command),
+        })
+
+
     def handle_incident_dionaea_modules_python_ftp_login(self, icd):
         self._append_credentials(icd)
 

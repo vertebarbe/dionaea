@@ -172,6 +172,12 @@ class smbd(connection):
         rstatus = 0
         smbh = p.getlayer(SMB_Header)
         Command = smbh.Command
+
+        icd = incident("dionaea.modules.python.smb.command")
+        icd.command = SMB_Commands[Command]
+        icd.con = self
+        icd.report()
+
         if Command == SMB_COM_NEGOTIATE:
             # Negociate Protocol -> Send response that supports minimal features in NT LM 0.12 dialect
             # (could be randomized later to avoid detection - but we need more dialects/options support)
