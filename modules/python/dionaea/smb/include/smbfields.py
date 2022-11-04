@@ -1104,11 +1104,24 @@ class SMB_Write_AndX_Request(Packet):
         LEShortField("ByteCount",  0),
         ConditionalField(LEShortField("PipeWriteLen", 0), lambda x:
                          x.WriteMode & SMB_WM_MSGSTART and x.WriteMode & SMB_WM_WRITERAW),
-        StrLenField("Padding", None, length_from=lambda x:
-                    x.ByteCount-((x.DataLenHigh<<16)|x.DataLenLow)),
+
+        # DataOffset contains the position of the data from the beginning of the SMB header.
+        # underlayer.size() gives the size of the SMB header
+        StrLenField("Padding", None, length_from=lambda x:(
+            x.DataOffset-x.underlayer.size()-x.lengthto_Pad())),
+
+        # NetBIOS layer's LENGTH attribute contains the SMB layer total size.
         StrLenField("Data", b"", length_from=lambda x:(
-            (x.DataLenHigh<<16)|x.DataLenLow)),
+            x.underlayer.underlayer.LENGTH-x.DataOffset)),
     ]
+
+    def lengthto_Pad(self):
+        x = 3 * 1
+        x += 8 * 2
+        x += 2 * 4
+        if hasattr(self,'HighOffset'):
+            x += 4
+        return x
 
     def lengthfrom_Pad(self):
         x = 3 * 1

@@ -415,7 +415,16 @@ class smbd(connection):
             elif h.FileAttributes & SMB_FA_DIRECTORY:
                 pass
             else:
-                self.fids[r.FID] = None
+                dionaea_config = g_dionaea.config().get("dionaea")
+                download_dir = dionaea_config.get("download.dir")
+                download_suffix = dionaea_config.get("download.suffix", ".tmp")
+
+                self.fids[r.FID] = tempfile.NamedTemporaryFile(
+                    delete=False,
+                    prefix="smb-",
+                    suffix=download_suffix,
+                    dir=download_dir
+                )
         elif Command == SMB_COM_OPEN_ANDX:
             h = p.getlayer(SMB_Open_AndX_Request)
             r = SMB_Open_AndX_Response()
@@ -456,7 +465,15 @@ class smbd(connection):
             r.CountLow = h.DataLenLow
             if h.FID in self.fids and self.fids[h.FID] is not None:
                 smblog.warning("WRITE FILE!")
-                self.fids[h.FID].write(h.Data)
+                self.fids[h.FID].seek(h.Offset)
+
+                written = self.fids[h.FID].write(h.Data)
+
+                # Low 16 bits of written
+                r.CountLow = written & 0xffff
+
+                # High 16 bits of written
+                r.CountHigh = (written >> 16) & 0xffff
             else:
                 self.buf += h.Data
 #				self.process_dcerpc_packet(p.getlayer(SMB_Write_AndX_Request).Data)
